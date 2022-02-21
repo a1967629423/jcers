@@ -46,7 +46,6 @@ pub enum JceValue {
 impl super::JceGet for JceValue {
     #[cfg(feature = "std")]
     fn jce_get<B: bytes::Buf + ?Sized>(jce: &mut crate::de::Jce<B>) -> crate::JceResult<Self> {
-        println!("jec value jec_get head {:?}",jce.head);
         match jce.head.ty {
             JceType::Bool => Ok(Self::Bool(bool::jce_get(jce)?)),
             JceType::Byte => Ok(Self::Byte(u8::jce_get(jce)?)),
@@ -66,7 +65,6 @@ impl super::JceGet for JceValue {
     }
     #[cfg(not(feature = "std"))]
     fn jce_get<B: bytes::Buf + ?Sized>(jce: &mut crate::de::Jce<B>) -> crate::JceResult<Self> {
-        println!("jec value jec_get head {:?}",jce.head);
         match jce.head.ty {
             JceType::Bool => Ok(Self::Bool(bool::jce_get(jce)?)),
             JceType::Byte => Ok(Self::Byte(u8::jce_get(jce)?)),
