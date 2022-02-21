@@ -12,6 +12,7 @@ pub struct TestStruct {
     pub d: String,          // 3
     pub e: HashMap<u8, u8>, // 6
 }
+
 #[cfg(feature = "std")]
 impl JceGet for TestStruct {
     fn jce_get<B: bytes::Buf + ?Sized>(jce: &mut de::Jce<B>) -> JceResult<Self> {
@@ -90,7 +91,6 @@ impl JcePut for TestStruct {
         jce_mut.put_head(11, tag);
     }
 }
-
 #[test]
 fn test_jce_struct() {
     use bytes::Bytes;

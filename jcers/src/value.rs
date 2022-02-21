@@ -34,7 +34,7 @@ pub enum JceValue {
     I64(i64),
     F32(f32),
     F64(f64),
-    String(String),
+    String(alloc::string::String),
     Map(BTreeMap<JceMapKey, JceValue>),
     List(Vec<JceValue>),
     Struct(JceStruct),
@@ -46,6 +46,7 @@ pub enum JceValue {
 impl super::JceGet for JceValue {
     #[cfg(feature = "std")]
     fn jce_get<B: bytes::Buf + ?Sized>(jce: &mut crate::de::Jce<B>) -> crate::JceResult<Self> {
+        println!("jec value jec_get head {:?}",jce.head);
         match jce.head.ty {
             JceType::Bool => Ok(Self::Bool(bool::jce_get(jce)?)),
             JceType::Byte => Ok(Self::Byte(u8::jce_get(jce)?)),
@@ -65,6 +66,7 @@ impl super::JceGet for JceValue {
     }
     #[cfg(not(feature = "std"))]
     fn jce_get<B: bytes::Buf + ?Sized>(jce: &mut crate::de::Jce<B>) -> crate::JceResult<Self> {
+        println!("jec value jec_get head {:?}",jce.head);
         match jce.head.ty {
             JceType::Bool => Ok(Self::Bool(bool::jce_get(jce)?)),
             JceType::Byte => Ok(Self::Byte(u8::jce_get(jce)?)),
@@ -73,7 +75,7 @@ impl super::JceGet for JceValue {
             JceType::I64 => Ok(Self::I64(i64::jce_get(jce)?)),
             JceType::F32 => Ok(Self::F32(f32::jce_get(jce)?)),
             JceType::F64 => Ok(Self::F64(f64::jce_get(jce)?)),
-            JceType::ShortString | JceType::LongString => Ok(Self::String(String::jce_get(jce)?)),
+            JceType::ShortString | JceType::LongString => Ok(Self::String(alloc::string::String::jce_get(jce)?)),
             JceType::Map => Ok(Self::Map(BTreeMap::<JceMapKey, JceValue>::jce_get(jce)?)),
             JceType::List => Ok(Self::List(Vec::<JceValue>::jce_get(jce)?)),
             JceType::Struct => Ok(Self::Struct(JceStruct::jce_get(jce)?)),
@@ -116,9 +118,22 @@ impl super::JceGet for JceMapKey {
 }
 
 /// Struct type for jce
-pub type JceStruct = BTreeMap<u8, JceValue>;
+// pub type JceStruct = BTreeMap<u8, JceValue>;
+#[derive(Debug,Clone,Default,PartialEq)]
+pub struct JceStruct(BTreeMap<u8, JceValue>);
 
-#[cfg(feature = "std")]
+impl core::ops::Deref for JceStruct {
+    type Target = BTreeMap<u8,JceValue>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl core::ops::DerefMut for JceStruct {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl super::JceGet for JceStruct {
     fn jce_get<B: bytes::Buf + ?Sized>(jce: &mut crate::de::Jce<B>) -> crate::JceResult<Self> {
         let mut map = BTreeMap::new();
@@ -131,10 +146,10 @@ impl super::JceGet for JceStruct {
             let value = JceValue::jce_get(jce)?;
             map.insert(tag, value);
         }
-        Ok(map)
+        Ok(Self(map))
     }
 
     fn empty() -> crate::JceResult<Self> {
-        Ok(BTreeMap::default())
+        Ok(Self::default())
     }
 }

@@ -1,9 +1,7 @@
-
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 #[cfg(not(feature = "std"))]
 extern crate alloc;
-
 use core::hash::Hash;
 use super::{JceError, JceHead, JceResult, JceType, JceValue};
 use bytes::{Buf, Bytes};
@@ -41,6 +39,7 @@ where
             head: JceHead::default(),
             readed: false,
         };
+        
         jce.read_head();
         jce
     }
@@ -56,6 +55,7 @@ where
     pub fn read_head(&mut self) -> JceHead {
         let byte = self.inner.get_u8();
         let ty = JceType::from(byte & 0xF);
+        
         let mut tag = (byte & 0xF0) >> 4;
         if tag == 15 {
             let next_byte = self.inner.get_u8();
@@ -92,6 +92,7 @@ where
     where
         T: JceGet,
     {
+       
         if self.head.tag != tag {
             self.go_to_tag(tag)?;
         }
@@ -210,7 +211,7 @@ impl JceGet for f64 {
         Ok(0.0)
     }
 }
-
+#[cfg(feature = "std")]
 impl JceGet for String {
     fn jce_get<B: Buf + ?Sized>(jce: &mut Jce<B>) -> JceResult<Self> {
         let len = match jce.head.ty {
@@ -225,6 +226,28 @@ impl JceGet for String {
         } else {
             let data = jce.inner.copy_to_bytes(len);
             String::from_utf8(data.to_vec()).map_err(|_| JceError::Utf8Error)
+        }
+    }
+
+    fn empty() -> JceResult<Self> {
+        Ok(String::default())
+    }
+}
+#[cfg(not(feature = "std"))]
+impl JceGet for alloc::string::String {
+    fn jce_get<B: Buf + ?Sized>(jce: &mut Jce<B>) -> JceResult<Self> {
+        let len = match jce.head.ty {
+            JceType::ShortString => jce.inner.get_u8() as usize,
+            JceType::LongString => jce.inner.get_i32() as usize,
+            _ => {
+                return Err(JceError::ReadLenError(jce.head.ty));
+            }
+        };
+        if len == 0 {
+            Self::empty()
+        } else {
+            let data = jce.inner.copy_to_bytes(len);
+            alloc::string::String::from_utf8(data.to_vec()).map_err(|_| JceError::Utf8Error)
         }
     }
 
@@ -265,6 +288,7 @@ where
     V: JceGet,
 {
     fn jce_get<B: Buf + ?Sized>(jce: &mut Jce<B>) -> JceResult<Self> {
+        
         if jce.head.ty != JceType::Map {
             return Err(JceError::ReadTypeError(JceType::Map, jce.head.ty));
         }
